@@ -1,0 +1,274 @@
+{% extends "./base.html" %}
+
+{% block othercss %}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+{% block log %}{{ title }}{% endblock %}
+{% block username %}{{ username }}{% endblock %}
+
+
+{% block mainbody %}
+<section class="wrapper site-min-height">
+	<h3><i class="fa fa-angle-right"></i> 服务器时间 <i class="fa fa-calendar"></i></h3>
+	<div class="row mt">
+		<div class="col-lg-6">
+			<div class="form-panel">
+				<h4 class="mb"> 服务器时间</h4>
+				<div class="col-sm-12">
+					<h4 class="mb" id="getservertime" style="text-align: center"> {{time}}</h4>
+				</div>
+				<div><br><br><br></div>
+				<div class="col-sm-12" style="text-align: right">
+					<button id="gettime" class="btn btn-theme02">重新获取</button>
+				</div>
+				<div><br><br><br></div>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="form-panel">
+				<h4 class="mb"> 修改服务器时间</h4>
+				<div class="col-sm-12">
+					<div class="task-content">
+						<ul id="sortable" class="task-list ui-sortable">
+							{% if serverstatus == 'others' %}
+							<li class="list-danger">
+								<i class=" fa fa-ellipsis-v"></i>
+								<span class="task-title-sp">【{{taskor}}】在使用服务器，无法修改时间</span>
+							</li>
+							{% elif serverstatus == 'nobady' %}
+							<li class="list-success">
+								<i class=" fa fa-ellipsis-v"></i>
+								<input type="checkbox" class="list-child" onchange="isCheck(this)" value="">
+								<span class="task-title-sp" id="use">&nbsp;&nbsp;我在使用中，请勿修改时间</span>
+							</li>
+							{% else %}
+							<li class="list-success">
+								<i class=" fa fa-ellipsis-v"></i>
+								<input type="checkbox" class="list-child" checked="checked" onchange="isCheck(this)" value="">
+								<span class="task-title-sp" id="use">&nbsp;&nbsp;我在使用中，请勿修改时间</span>
+							</li>
+							{% endif %}
+						</ul>
+					</div>
+				</div>
+				<div><br><br><br><br></div>
+				{% if serverstatus != 'others' %}
+				<div class="col-sm-12" id="status">
+					<input type="text" class="form-control" id="time">
+					<div class="progress progress-striped active" style="display:none;" id="loading">
+						<div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+					</div>
+				</div>
+				<div><br><br><br></div>
+				<div class="col-sm-12" style="text-align: right">
+					<button id="putsettingtime" class="btn btn-theme02">提交修改</button>
+					<button id="putlocaltime" class="btn btn-theme02">快捷恢复系统时间</button>
+				</div>
+				<div><br><br><br></div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+	<div class="row mt">
+		<div class="col-lg-6">
+			<div class="form-panel">
+				<h4 class="mb"> 修改时间的记录</h4>
+				<table class="table table-hover">
+					<thead>
+					<tr>
+						<th style="width:10%;">修改时间</th>
+						<th style="width:10%;">修改人</th>
+						<th style="width:10%;">修改后服务器时间</th>
+					</tr>
+					</thead>
+					<tbody id="tab">
+					{% for modifytime in modifytimes %}
+					<tr>
+						<td>{{ modifytime.modifytime }}</td>
+						<td>{{ modifytime.modifyer }}</td>
+						<td>{{ modifytime.modifyservertime }}</td>
+					</tr>
+					{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function getservertime(){
+	$.ajax({
+		url:"getservertime",
+		type:'GET',
+		success: function(arg){
+			ret = eval(arg);
+			if(ret.status){
+				$("#getservertime").html(ret.time)
+			}else{
+				$("#getservertime").html(ret.error)
+			}
+		}
+	});
+}
+function isCheck(obj){
+	if($(obj).prop("checked")){
+		$.ajax({
+			url:"usingserver",
+			type:'GET',
+			data:{'using':'yes'},
+		});
+	}else{
+		$.ajax({
+			url:"usingserver",
+			type:'GET',
+			data:{'using':'no'},
+		});
+	}
+}
+$(document).ready(function(){
+	$("#gettime").click(function(){
+		getservertime();
+	});
+	$("#putsettingtime").click(function(){
+		settingtime = $("#time").val();
+		if(settingtime == ''){
+			swal('', '请选择时间!', 'error')
+		}
+		else{
+			swal({
+			title: '将服务器时间设定为输入的时间?',
+			type: 'warning',
+			confirmButtonColor: '#DD6B55',
+			confirmButtonText:"是的",  
+			cancelButtonText:"不用",
+			showLoaderOnConfirm: true, //加载按钮是否可见  
+			showCancelButton: true,
+            preConfirm: function() {  
+                return new Promise(function(resolve) {  
+                    setTimeout(function(){
+						$("#putlocaltime").hide();
+						$("#putsettingtime").hide();
+						$("#time").hide();
+						$("#loading").show();
+                        resolve();  
+                    }, 3000);  
+                });  
+            },  
+            allowOutsideClick: false, //弹框外是否可点
+        }).then(function(res){  
+            if(res){  
+                $.ajax({
+					url:"settime",
+					type:'POST',
+					data:{'settime':settingtime},
+					success: function(arg){
+						ret = eval(arg);
+						if(ret.status){
+							swal({  
+								type: 'success',  
+								title: '时间设定完成！',  
+								confirmButtonText: '确定',  
+								confirmButtonColor: '#4cd964'  
+							}).then(function(){
+								getservertime();
+								$("#putlocaltime").show();
+								$("#putsettingtime").show();
+								$("#time").show();
+								$("#loading").hide();
+								var tr = "<tr><td>"+ret.modifytime+"</td><td>"+ret.modifyer+"</td><td>"+ret.servertime+"</td></tr>"
+								$("#tab tr:first").before(tr); //向table的第一行添加数据
+								$("#tab tr:last").remove();    //删除最后一行
+								});  
+						}else{
+							swal({  
+								type: 'error',  
+								title: '时间设定失败！',  
+								confirmButtonText: '确定',  
+								confirmButtonColor: '#4cd964'  
+							}).then(function(){
+								getservertime();
+								$("#putlocaltime").show();
+								$("#putsettingtime").show();
+								$("#time").show();
+								$("#loading").hide();
+							});  
+						}
+					}});
+            }
+        });
+		}
+	});
+	$("#putlocaltime").click(function(){
+		swal({  
+            title: '将服务器时间设定为本地时间?',
+			type: 'warning',
+			confirmButtonColor: '#DD6B55',
+			confirmButtonText:"是的",  
+			cancelButtonText:"不用",
+            showLoaderOnConfirm: true, //加载按钮是否可见  
+			showCancelButton: true,
+            preConfirm: function() {  
+                return new Promise(function(resolve) {  
+                    setTimeout(function(){ 
+						$("#putlocaltime").hide();
+						$("#putsettingtime").hide();
+						$("#time").hide();
+						$("#loading").show();
+						resolve();  
+                    }, 3000);  
+                });  
+            }, 
+            allowOutsideClick: false, //弹框外是否可点
+        }).then(function(res){ 
+            if(res) {  
+                $.ajax({
+					url:"recoverlocaltime",
+					type:'GET',
+					success: function(arg){
+						ret = eval(arg);
+						if(ret.status){
+							swal({  
+								type: 'success',  
+								title: '时间设定完成！',  
+								confirmButtonText: '确定',  
+								confirmButtonColor: '#4cd964'  
+								}).then(function(){
+									getservertime();
+									$("#putlocaltime").show();
+									$("#putsettingtime").show();
+									$("#time").show();
+									$("#loading").hide();
+									var tr = "<tr><td>"+ret.modifytime+"</td><td>"+ret.modifyer+"</td><td>"+ret.modifytime+"</td></tr>"
+									$("#tab tr:first").before(tr); //向table的第一行添加数据
+									$("#tab tr:last").remove();    //删除最后一行
+									});  
+						}else{
+							swal({  
+								type: 'error',  
+								title: '时间设定失败！',  
+								confirmButtonText: '确定',  
+								confirmButtonColor: '#4cd964'  
+								}).then(function(){
+									getservertime();
+									$("#putlocaltime").show();
+									$("#putsettingtime").show();
+									$("#time").show();
+									$("#loading").hide();
+								});  
+						}
+					}});
+            }  
+        });  
+	});
+	laydate.render({
+		elem: '#time',
+		type: 'datetime',
+		theme: 'molv'
+	});
+});
+</script>
+<script src="/templates/servermaterial/assets/laydate/laydate.js"></script>
+{% endblock %}
+

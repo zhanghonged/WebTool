@@ -1,0 +1,121 @@
+{% extends "./base.html" %}
+
+{% block css %}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+{% block log %}{{ title }}{% endblock %}
+{% block username %}{{ username }}{% endblock %}
+
+{% block mainbody %}
+<section class="wrapper site-min-height">
+	<div class="fakeloader"></div>
+	<h3><i class="fa fa-angle-right"></i> 进程重启 <i class="fa fa-refresh"></i></h3>
+	<div class="row mt">
+		<div class="col-lg-12">
+			<div class="form-panel">
+				<h4 class="mb"> 进程重启</h4>
+				{% if taskor != '' %}
+				<div class="col-sm-12">
+					<div class="alert alert-danger"  id="loading-tips"><b>稍等~</b> 【{{taskor}}】正在重启进程...</div>
+				</div>
+				<div><br><br><br><br></div>
+				{% else %}
+				<div class="col-sm-12">
+					<div class="alert alert-danger" id="pre-tips"><b>注意!</b> 此操作将会导致进程重启。</div>
+					<div class="alert alert-danger" style="display:none;" id="loading-tips"><b>稍等~</b> 进程正在重启...</div>
+					<div class="progress progress-striped active" style="display:none;" id="loading">
+						<div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+					</div>
+				</div>
+				<div><br><br><br><br></div>
+				<div class="col-sm-12" style="text-align: right">
+					<button type="button" id="restart" class="btn btn-theme04">批量重启进程</button>
+				</div>
+				<div><br><br><br></div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+	<div class="row mt">
+		<div class="col-lg-12">
+			<div class="form-panel">
+				<h4 class="mb"> 重启的记录</h4>
+				<table class="table table-hover">
+					<thead>
+					<tr>
+						<th style="width:10%;">重启时间</th>
+						<th style="width:10%;">重启人</th>
+						<th style="width:10%;">重启是否成功</th>
+					</tr>
+					</thead>
+					<tbody id="tab">
+					{% for item in reboot %}
+					<tr>
+						<td>{{ item.reboottime }}</td>
+						<td>{{ item.rebooter }}</td>
+						<td>{{ item.rebootresult }}</td>
+					</tr>
+					{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+	$("#restart").click(function(){
+	swal({
+		title: '您确定要重启吗?',
+		type: 'warning',
+		confirmButtonColor: '#DD6B55',
+		confirmButtonText:"是的，我要重启！",  
+		cancelButtonText:"让我再考虑一下…",
+		showLoaderOnConfirm: true, //加载按钮是否可见  
+		showCancelButton: true,
+		preConfirm: function() {  
+			return new Promise(function(resolve) {  
+				setTimeout(function(){
+					$("#restart").hide();
+					$("#pre-tips").hide();
+					$("#loading-tips").show();
+					$("#loading").show();
+					resolve();  
+				}, 3000);  
+			});  
+		},  
+        allowOutsideClick: false, //弹框外是否可点
+		}).then(function(res){
+		if (res){
+		$.ajax({
+			url:"restartserver",
+			type:'GET',
+			success: function(arg){
+				ret = eval(arg);
+				if(ret.status){
+					swal({  
+						type: 'success',  
+						title: '重启完成！',  
+						confirmButtonText: '确定',  
+						confirmButtonColor: '#4cd964'  
+						}).then(function(){
+							window.location.reload();
+							});  
+				}else{
+					swal({  
+						type: 'error',  
+						title: '重启失败！',  
+						confirmButtonText: '确定',  
+						confirmButtonColor: '#4cd964'  
+						}).then(function(){
+							window.location.reload();
+						});  
+				}
+			}});
+		}})
+	});
+});
+</script>
+{% endblock %}

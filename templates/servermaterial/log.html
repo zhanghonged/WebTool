@@ -1,0 +1,138 @@
+{% extends "./base.html" %}
+
+{% block othercss %}
+<link href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css" rel="stylesheet" />
+{% endblock %}
+{% block title %}{{ title }}{% endblock %}
+{% block log %}{{ title }}{% endblock %}
+{% block username %}{{ username }}{% endblock %}
+
+
+{% block mainbody %}
+<section class="wrapper site-min-height">
+	<h3><i class="fa fa-angle-right"></i> 查找日志 <i class="fa fa-desktop"></i></h3>
+	<div class="row mt">
+		<div class="form-panel">
+			<div class="col-lg-12 row mt">
+				<div class="col-sm-6">
+					<h4 class="mb" style="float:left;dispaly:block;">查找日志</h4>
+				</div>
+				<div class="col-sm-5 search">
+					<input type="text" class="form-control" id='contentkey' placeholder='关键内容或日志名(可填)'>
+					<input type="text" class="form-control" id="date">
+					<div class="row">
+						<div class="col-sm-8">
+							<input type="text" class="form-control" id="time" placeholder='选择时间段(必填)'>
+						</div>
+						<div class="col-sm-4">
+							<button type="button" class="btn btn-theme02" id='searchlog' style="float:right;">查找日志</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div>
+				<div class="progress progress-striped active" style="display:none" id="loading">
+					<div class="progress-bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+				</div>
+				<table id="logtable" class="table-striped dataTable table-advance table-hover" style="word-break:break-all;">
+					<thead>
+						<tr>
+							<th style="width:25%;">日志时间</th>
+							<th style="width:15%;">名字</th>
+							<th>日志内容</th>
+						</tr>
+					</thead>
+					<tbody id="log">
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 获取当前的日期，在用户选择日期的时候input栏默认当前日期
+var formatDate = function (date) {  
+    var y = date.getFullYear();  
+    var m = date.getMonth() + 1;  
+    m = m < 10 ? '0' + m : m;  
+    var d = date.getDate();  
+    d = d < 10 ? ('0' + d) : d;  
+    return y + '-' + m + '-' + d;  
+};  
+
+$(document).ready(function (){
+	$('#logtable').DataTable({
+		"scrollCollapse": true,
+		'columnDefs':[{
+		'targets' : [1,2],    //除时间列以外都不排序
+		'orderable' : false
+		}],
+		"order": [[0 , "asc" ]],
+		"oLanguage": {
+			"sZeroRecords": "无结果！",
+			"sSearch": "日志过滤：",
+		},
+	});
+
+	laydate.render({
+		theme: 'molv',
+		elem: '#date',
+		// input栏默认当前日期
+		value: formatDate(new Date())
+	});
+	// 时间范围
+	laydate.render({
+		theme: 'molv',
+		elem: '#time',
+		type: 'time',
+		format: 'H点',
+		range: true
+	});
+});
+$("#searchlog").click(function(){
+	keycontent = $("#contentkey").val();
+	date = $("#date").val();
+	if(date == ''){
+		swal('', '请选择日期!', 'error')
+		return ;
+	}
+	time = $("#time").val();
+	if(time == ''){
+		swal('', '请填写时间段!', 'error')
+		return ;
+	}
+	// 判定首尾时间是否相等，由于是取时间段，首尾时间相等时是不允许的
+	_time = time.split("-");
+	begin_time = _time[0].replace(/\s/ig,'');
+	end_time = _time[1].replace(/\s/ig,'');
+	if(begin_time == end_time){
+		swal('', '首位时间相等，请重新输入!', 'error')
+		return ;
+	}
+		
+	var table = $('#logtable').DataTable().clear().draw();
+	table.clear().draw();
+	$.ajax({
+		url:"searchlog",
+		type:'POST',
+		data:{'keycontent':keycontent, 'date':date, 'time':time},
+		success: function(arg){
+			ret = eval(arg);
+			logs = ret.logs;
+			for(j = 0,len = logs.length; j < len; j++) {
+				logtime = logs[j][0];
+				logname = logs[j][1];
+				logcontent = logs[j][2];
+				table.row.add([logtime,logname,logcontent]).draw(true);
+			}
+		}
+	});
+});
+</script>
+<script src="/templates/servermaterial/assets/laydate/laydate.js"></script>
+<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+{% endblock %}
+
