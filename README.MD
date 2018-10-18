@@ -1,0 +1,2 @@
+web端服务器管理工具
+采用websocket实现服务器log在web页面上实时展示
